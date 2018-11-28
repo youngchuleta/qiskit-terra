@@ -10,6 +10,8 @@
 """
 Visualization functions for measurement counts.
 """
+#Things to think about:
+# probably have to mock "options" dict
 
 from collections import Counter
 import functools
@@ -55,6 +57,7 @@ def plot_histogram(data, number_to_keep=None, legend=None, options=None,
         options = {}
 
     if number_to_keep is not None:
+    # TEST STRATEGY: use assertWarns() method from unittest python lib    
         warnings.warn("number_to_keep has been deprecated, use the options "
                       "dictionary and set a number_to_keep key instead",
                       DeprecationWarning)
@@ -66,13 +69,17 @@ def plot_histogram(data, number_to_keep=None, legend=None, options=None,
         data = [data]
 
     if legend and len(legend) != len(data):
+      # TEST STRATEGY: use assertRaises() method from unittest python lib  
         raise VisualizationError("Length of legendL (%s) doesn't match "
                                  "number of input executions: %s" %
                                  (len(legend), len(data)))
 
     if 'height' in options and 'width' in options:
+    # these do not change unless user specified
+    # test to see if these attributes match user specified opts
         _, ax = plt.subplots(figsize=(options['width'], options['height']))
     else:
+    # test to see if these attributes match matplotlib default 
         _, ax = plt.subplots()
 
     labels = sorted(
@@ -111,8 +118,12 @@ def plot_histogram(data, number_to_keep=None, legend=None, options=None,
                     ha='center', va='bottom')
     if legend and (
             'show_legend' not in options or options['show_legend'] is True):
+    # TEST STRATEGY: see if pyplot (plt) reference has legend as an attribute   
         plt.legend()
     if 'sort' in options:
+    #Test strategy: if set to 'asc', x axis should be standard (ascending)
+#                   if set to 'desc', x axis should be inverted (descending)
+#               if anything else, assert this raises visualization error
         if options['sort'] == 'asc':
             pass
         elif options['sort'] == 'desc':
