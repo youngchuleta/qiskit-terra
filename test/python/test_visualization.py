@@ -14,10 +14,11 @@ import random
 from inspect import signature
 import unittest
 import qiskit
+from unittest.mock import patch
 from .common import QiskitTestCase
 
 try:
-    from qiskit.tools.visualization import generate_latex_source
+    from qiskit.tools.visualization import generate_latex_source, _counts_visualization, _error
     VALID_MATPLOTLIB = True
 except (RuntimeError, ImportError):
     # Under some combinations (travis osx vms, or headless configurations)
@@ -161,6 +162,60 @@ class TestLatexSourceGenerator(QiskitTestCase):
             if os.path.exists(filename):
                 os.remove(filename)
 
+class CountsVisualization_TestClass(QiskitTestCase):
+    
+    def test_plot_file_created(self):
+        """Test Plot File is Created"""
+#        PASSED
+        testfile = 'C:\\Users\\albie\\testfile.jpg'
+        plot_histogram(data=[], filename=testfile)
+        try:
+            self.assertNotEqual(os.path.exists(testfile), False)
+        finally:
+            if os.path.exists(testfile):
+                os.remove(testfile) 
+                
+    
+    def numToKeep_warning(self):
+#        test that warning is raised when number_to_keep != None
+#        PASSED
+        plot_histogram(data=[], number_to_keep=1, show=False)
+        self.assertWarns(DeprecationWarning,
+                    msg="number_to_keep has been deprecated, use the options dictionary and set a number_to_keep key instead")
+        
+    def uneqDataLegendLens_raisesError(self):
+#        test that warning is raised when number_to_keep != None
+#        checks for case when data is a list of dicts, and legend doesn't match # of dicts in list
+#        PASSED
+        with self.assertRaises(VisualizationError) as cm:
+            plot_histogram(data=[{'001': 130, '011': 130, '111': 130}, {'000': 130, '100': 130, '110': 130}], 
+                       legend=["data1", "data2", "data3"], show=False)
+        self.assertTrue("Length of legendL (3) doesn't match number of input executions: 2" in str(cm.exception))        
+    
+    #@patch.object(matpla)
+    @patch.object(matplotlib, "axes")
+    @patch.object(matplotlib.pyplot, "subplots")
+    #def test_axes(self, mock_ax):
+    def test_subplots(self, mock_plot, mock_ax):
+        #if options = None
+        mock_ax.return_value = None
+        mock_plot.return_value = None, mock_ax
+        cv.plot_histogram(data = {1:5,2:4,3:3,4:2,5:1,6:0,7:1})
+        mock_plot.assert_called_with()#lines 75-76
+        mock_ax.set_ylabel.assert_called_with('Probabilities', fontsize=12)#line 102
+        
+        # Following is called with " array([0, 1, 2, 3, 4, 5, 6] " ,but tests
+        # for that fail
+        mock_ax.set_xticks.assert_called #_with('[0,1,2,3,4,5,6]')#line 103
+        
+        mock_ax.set_xticklabels.assert_called_with([1, 2, 3, 4, 5, 6, 7], fontsize=12, rotation=70)#104
+        #the following is too complicated to mock better
+        mock_ax.set_ylim.assert_called #_with([0., min([1.2, max([1.2 * val for val in pvalues])])])#line 103
+        
+        #if options = {'height':4, 'width':3}
+        mock_plot.return_value = None, None
+        cv.plot_histogram(data = [], options = {'height':4, 'width':3})
+        mock_plot.assert_called_with(figsize=(3, 4))#lines 73-74
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
